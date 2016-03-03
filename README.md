@@ -1,1 +1,1 @@
-# dailyjourneybot
+# dailywalkbot
