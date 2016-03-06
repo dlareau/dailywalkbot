@@ -71,7 +71,7 @@ latlong_file.close()
 
 # Send out starting tweet
 init_address = address_from_latlng(lat, lng)
-twitter.tweet("Today we are starting from: %s." % init_address)
+twitter.tweet("Today, I'm starting from %s." % init_address)
 
 # Various variable intitialization
 polylines = []
@@ -167,4 +167,4 @@ data_file.write(concat_polylines(polylines))
 data_file.close()
     
 # We are done for the day, let the world know.
-twitter.tweet("I'm done for today." + strftime("%Y-%m-%d") + " You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
+twitter.tweet("I'm done for today, " + date_suffix + ". You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
