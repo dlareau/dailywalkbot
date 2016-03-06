@@ -9,12 +9,12 @@ import math
 import api_keys
 import twitter_api
 
-# Tweets to twitter if True, prints to console if false
+# Tweets to twitter if True, prints to console if False
 TWEET_ON = True
 SLEEP_ON = True
 
 
-# Rough maximum distance to travel per tweet. 
+# Rough maximum distance to travel per tweet, in meters.
 MAX_DISTANCE = 1000
 
 # Number of hours to travel each day.
@@ -71,7 +71,7 @@ latlong_file.close()
 
 # Send out starting tweet
 init_address = address_from_latlng(lat, lng)
-twitter.tweet("Today we are starting from: %s." % init_address)
+twitter.tweet("Today, I'm starting from %s." % init_address)
 
 # Various variable intitialization
 polylines = []
@@ -136,7 +136,7 @@ while(time < (3600*NUM_HOURS)):
     tweet_num += 1
     
     # Make the main tweet text
-    tweet = ("%d) Heading to %s, ETA: %d Minutes\nLink: http://maps.google.com/?q=%f,%f." % 
+    tweet = ("%d) Heading to %s; ETA: %d minutes.\nhttp://maps.google.com/?q=%f,%f" %
             (tweet_num, address, hours*60 + minutes, lat, lng))
 
     # Generate static image for main tweet, oh god, so many parameters
@@ -157,8 +157,10 @@ while(time < (3600*NUM_HOURS)):
 
     # 99.9% of the time, when we are not sleeping, we are testing
     if(SLEEP_ON):
+        date = strftime("%d %B %Y")
         date_suffix = strftime("%Y-%m-%d")
     else:
+        date = "Test-" + random.randrange(10000)
         date_suffix = "test"
 
 # Write end of day data to file for displaying.
@@ -167,4 +169,4 @@ data_file.write(concat_polylines(polylines))
 data_file.close()
     
 # We are done for the day, let the world know.
-twitter.tweet("I'm done for today." + strftime("%Y-%m-%d") + " You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
+twitter.tweet("I'm done for today, " + date + ". You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
