@@ -9,12 +9,12 @@ import math
 import api_keys
 import twitter_api
 
-# Tweets to twitter if True, prints to console if false
+# Tweets to twitter if True, prints to console if False
 TWEET_ON = True
 SLEEP_ON = True
 
 
-# Rough maximum distance to travel per tweet. 
+# Rough maximum distance to travel per tweet, in meters.
 MAX_DISTANCE = 1000
 
 # Number of hours to travel each day.
