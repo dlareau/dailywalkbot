@@ -160,13 +160,21 @@ while(time < (3600*NUM_HOURS)):
         date = strftime("%d %B %Y")
         date_suffix = strftime("%Y-%m-%d")
     else:
-        date = "Test-" + random.randrange(10000)
+        date = "Test-" + str(random.randrange(10000))
         date_suffix = "test"
 
 # Write end of day data to file for displaying.
+new_data = concat_polylines(polylines)
 data_file = open(DATA_FILE_PATH + "/data" + date_suffix + ".txt", 'w')
-data_file.write(concat_polylines(polylines))
+data_file.write(new_data)
 data_file.close()
-    
+
+old_data_file = open(DATA_FILE_PATH + "/data.txt", 'r')
+old_data = old_data_file.read()
+old_data_file.close()
+new_data_file = open(DATA_FILE_PATH + "/data.txt", 'w')
+new_data_file.write(concat_polylines([old_data, new_data]))
+new_data_file.close()
+
 # We are done for the day, let the world know.
 twitter.tweet("I'm done for today, " + date + ". You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
