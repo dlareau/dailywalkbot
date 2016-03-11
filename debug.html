@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+  <meta charset="utf-8">
+  <title>Daily Walk Bot Results</title>
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  #map {
+    height: 100%;
+  }
+  </style>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDJAUwP5BmrJFVolo9T7OQsf_CusoHODIo&libraries=geometry">
+  </script>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+  var lineSymbol = {
+    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW
+  };
+  var circleSymbol = {
+    path: google.maps.SymbolPath.CIRCLE
+  };
+
+  function decode(path){
+    return google.maps.geometry.encoding.decodePath(path);
+  }
+
+  var num = location.search.split('num=')[1] ? location.search.split('num=')[1] : 0;
+
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open( "GET", "http://jlareau.club.cc.cmu.edu/walker/debug_file.json", false); 
+  xmlHttp.send( null );
+  data = JSON.parse(xmlHttp.responseText)[num];
+
+
+  function addMarker(location, map) { 
+    var marker = new google.maps.Marker({
+      position: location,
+      map: map
+    });
+  }
+
+  function addPolyline(line, map, percentage, color) {
+    if(!percentage){
+      var flightPath = new google.maps.Polyline({
+        path: line,
+        geodesic: true,
+        strokeColor: color,
+        strokeOpacity: 1.0,
+        strokeWeight: 2,
+        map: map,
+        icons: [{
+          icon: circleSymbol
+        }],
+      });
+    } else {
+      var flightPath = new google.maps.Polyline({
+        path: line,
+        geodesic: true,
+        strokeColor: color,
+        strokeOpacity: 1.0,
+        strokeWeight: 2,
+        map: map,
+        icons: [{
+          icon: lineSymbol,
+          offset: percentage + '%'
+        },
+        {
+          icon: circleSymbol
+        }],
+      });
+    }
+  }
+
+  function addRectangle(bounds, map) {
+    var rectangle = new google.maps.Rectangle({
+      strokeColor: '#0000FF',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillOpacity: 0.0,
+      map: map,
+      bounds: bounds
+    });
+  }
+
+  encodedPath = data['overview'];
+
+  function initMap() {
+    var map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 11,
+      center: {lat: 40.4989506, lng: -79.796199}
+    });
+
+    var flightPlanCoordinates = [
+      {lat: data['last'][0], lng: data['last'][1]},
+      {lat: data['start'][0], lng: data['start'][1]}
+    ];
+
+    var bounds = {
+      north: data['start'][0] + 0.1,
+      south: data['start'][0] - 0.1,
+      east: data['start'][1] + 0.16,
+      west: data['start'][1] - 0.04
+    }
+
+    addPolyline(decode(encodedPath), map, null, "#FF0000");
+    addPolyline(flightPlanCoordinates, map, null, "#00FF00");
+    for(i = 0; i < data['path_polylines'].length; i++){
+      if(i == data['path_polylines'].length -1){
+        addPolyline(decode(data['path_polylines'][i]), map, data['percentage']*100, '#0000FF');
+      } else {
+        addPolyline(decode(data['path_polylines'][i]), map, null, '#0000FF');
+      }
+    }
+    addRectangle(bounds, map);
+    addMarker({lat: data['last'][0], lng: data['last'][1]}, map);
+    addMarker({lat: data['start'][0], lng: data['start'][1]}, map);
+    addMarker({lat: data['end'][0], lng: data['end'][1]}, map);
+  }
+  initMap();
+  </script>
+  </body>
+  </html>

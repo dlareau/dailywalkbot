@@ -13,7 +13,6 @@ import twitter_api
 TWEET_ON = True
 SLEEP_ON = True
 
-
 # Rough maximum distance to travel per tweet, in meters.
 MAX_DISTANCE = 1000
 
@@ -60,6 +59,7 @@ def vector_angle(latlong1, latlong2, latlong3):
     angle = math.degrees(math.acos(dot_p/(mag1*mag2)))
     return angle
 
+
 # Instanstiate instance of the tweepy twitter API
 twitter = twitter_api.TwitterAPI(TWEET_ON, NUM_TRIES)
 
@@ -81,9 +81,14 @@ tweet_num = 0
 last_lat = 40.5354588 
 last_lng = -79.9772996
 
+debug_data = []
+
 # Loop until we have walked for over NUM_HOURS hours.
 while(time < (3600*NUM_HOURS)):
+    temp_dict = {}
     start_addr = str(lat) + " " + str(lng)
+    temp_dict['last'] = (last_lat, last_lng)
+    temp_dict['start'] = (lat, lng)
     angle = 0
     # Generate a new lat/long such that we meet min angle requirements
     while(angle < MIN_ANGLE):
@@ -106,6 +111,8 @@ while(time < (3600*NUM_HOURS)):
 
             data = json.load(urllib2.urlopen(url))
             steps = data['routes'][0]['legs'][0]['steps']
+            temp_dict['end'] = (new_lat, new_lng)
+            temp_dict['overview'] = data['routes'][0]['overview_polyline']['points']
             break
         except:
             pass
@@ -113,27 +120,31 @@ while(time < (3600*NUM_HOURS)):
     distance = 0
     delta_time = 0 # Keep track of time this leg takes
     polylines_in_route = []
-
+    coords = []
+    
     # Move until we are over MAX_DISTANCE meters from the starting location
     for step in steps:
         lat = step['end_location']['lat']
         lng = step['end_location']['lng']
-
         # add to all the accumulators
         distance += step['distance']['value']
         delta_time += step['duration']['value']
         polylines.append(step['polyline']['points'])
         polylines_in_route.append(step['polyline']['points'])
-
+        coords.append((lat, lng))
         if(distance > MAX_DISTANCE):
+            temp_dict['percentage'] = 1-(float((distance-MAX_DISTANCE))/(step['distance']['value']))
             break
-
     # Keep track of all of the final info about the trip. 
     address = address_from_latlng(lat, lng)
     hours, remainder = divmod(delta_time, 3600)
     minutes, seconds = divmod(remainder, 60)
     time += delta_time
     tweet_num += 1
+
+    temp_dict['path_polylines'] = polylines_in_route
+    temp_dict['path_coords'] = coords
+    debug_data.append(temp_dict)
     
     # Make the main tweet text
     tweet = ("%d) Heading to %s; ETA: %d minutes.\nhttp://maps.google.com/?q=%f,%f" %
@@ -162,19 +173,23 @@ while(time < (3600*NUM_HOURS)):
     else:
         date = "Test-" + str(random.randrange(10000))
         date_suffix = "test"
-
+        
 # Write end of day data to file for displaying.
 new_data = concat_polylines(polylines)
 data_file = open(DATA_FILE_PATH + "/data" + date_suffix + ".txt", 'w')
 data_file.write(new_data)
 data_file.close()
 
-old_data_file = open(DATA_FILE_PATH + "/data.txt", 'r')
-old_data = old_data_file.read()
-old_data_file.close()
-new_data_file = open(DATA_FILE_PATH + "/data.txt", 'w')
-new_data_file.write(concat_polylines([old_data, new_data]))
-new_data_file.close()
+if(SLEEP_ON):
+    old_data_file = open(DATA_FILE_PATH + "/data.txt", 'r')
+    old_data = old_data_file.read()
+    old_data_file.close()
+    new_data_file = open(DATA_FILE_PATH + "/data.txt", 'w')
+    new_data_file.write(concat_polylines([old_data, new_data]))
+    new_data_file.close()
 
+df = open("debug_file.txt", "w")
+df.write(json.dumps(debug_data))
+df.close()
 # We are done for the day, let the world know.
 twitter.tweet("I'm done for today, " + date + ". You can find today's walk at jlareau.club.cc.cmu.edu/walker/results.html?date=" + date_suffix)
