@@ -23,10 +23,21 @@ NUM_HOURS = 8
 DATA_FILE_PATH = "/var/www/html/walker"
 
 # Number of times to retry any action if it fails for some random reason
-NUM_TRIES = 3
+NUM_TRIES = 5
 
 # Minimum angle between previous bearing and new bearing in degrees.
 MIN_ANGLE = 70
+
+# Constants for directionality
+NORTH = 0.04
+SOUTH = 0.16
+EAST = 0.04
+WEST = 0.16
+EVEN = 0.1
+
+#Variables for directionality
+NS_DIR = NORTH
+EW_DIR = EVEN
 
 # Uses google's geocoding API to get a human readable address from (lat,long)
 def address_from_latlng(lat, lng):
@@ -45,6 +56,30 @@ def concat_polylines(polylines):
             line_coords += decode(line)[1:]
 
     return encode_coords(line_coords)
+
+def concat_big_polylines(polylines):
+    if(len(polylines) == 1):
+        return polylines[0]
+
+    result = polylines[0]
+    for line_index in range(len(polylines)-1):
+        prev_line_coords = decode(polylines[line_index])
+        next_line_coords = decode(polylines[line_index+1])
+        if(prev_line_coords[-1] == next_line_coords[0]):
+            coord_string = encode_coords([next_line_coords[0]])
+            if(polylines[line_index+1][:len(coord_string)] == coord_string):
+                result = result + polylines[line_index+1][len(coord_string):]
+            else:
+                print("Single coord did not match start of polyline, error.")
+        else:
+            new_lat = next_line_coords[0][0] - prev_line_coords[-1][0]
+            new_lon = next_line_coords[0][1] - prev_line_coords[-1][1]
+            new_coords = (new_lat, new_lon)
+            new_coord_string = encode_coords([new_coords])
+            coord_string = encode_coords([next_line_coords[0]])
+            result = result + new_coord_string + polylines[line_index+1][len(coord_string):]
+
+    return result
 
 # Finds the angle between the two vectors defined by 2->1 and 2->3
 def vector_angle(latlong1, latlong2, latlong3):
@@ -77,9 +112,9 @@ twitter.tweet("Today, I'm starting from %s." % init_address)
 polylines = []
 time = 0
 tweet_num = 0
-# Bias it generally away from pittsburgh
-last_lat = 40.5354588 
-last_lng = -79.9772996
+# Bias it generally away from connecticut
+last_lat = 41.180945
+last_lng = -71.601474 
 
 debug_data = []
 
@@ -89,19 +124,16 @@ while(time < (3600*NUM_HOURS)):
     start_addr = str(lat) + " " + str(lng)
     temp_dict['last'] = (last_lat, last_lng)
     temp_dict['start'] = (lat, lng)
-    angle = 0
-    # Generate a new lat/long such that we meet min angle requirements
-    while(angle < MIN_ANGLE):
-        new_lat = lat + round((random.random()/5 - 0.1), 6)
-        new_lng = lng + round((random.random()/5 - 0.04), 6)
-        angle = vector_angle((last_lat, last_lng), (lat, lng), (new_lat, new_lng))
-
-    # Set these for calculating next angle requirement.
-    last_lat = lat
-    last_lng = lng
     
     # Retry because sometimes we put the point in a body of water and fail.
     for j in range(NUM_TRIES):
+        angle = 0
+        # Generate a new lat/long such that we meet min angle requirements
+        while(angle < MIN_ANGLE):
+            new_lat = lat + round((random.random()/5 - NS_DIR), 6)
+            new_lng = lng + round((random.random()/5 - EW_DIR), 6)
+            angle = vector_angle((last_lat, last_lng), (lat, lng), (new_lat, new_lng))
+
         try:
             end_addr = str(new_lat) + " " + str(new_lng)
             # Get directions
@@ -116,6 +148,10 @@ while(time < (3600*NUM_HOURS)):
             break
         except:
             pass
+
+    # Set these for calculating next angle requirement.
+    last_lat = lat
+    last_lng = lng
         
     distance = 0
     delta_time = 0 # Keep track of time this leg takes
@@ -185,7 +221,7 @@ if(SLEEP_ON):
     old_data = old_data_file.read()
     old_data_file.close()
     new_data_file = open(DATA_FILE_PATH + "/data.txt", 'w')
-    new_data_file.write(concat_polylines([old_data, new_data]))
+    new_data_file.write(concat_big_polylines([old_data, new_data]))
     new_data_file.close()
 
 df = open("debug_file.txt", "w")
